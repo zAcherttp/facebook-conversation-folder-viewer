@@ -184,7 +184,6 @@
     {
       "sender_name": "Alice Johnson",
       "timestamp_ms": 1699801920000,
-      "content": "Wait, I need to cancel. Something came up 😔",
       "is_unsent": true,
       "type": "Generic"
     },

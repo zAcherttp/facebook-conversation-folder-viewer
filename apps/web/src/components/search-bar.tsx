@@ -1,202 +1,127 @@
-import { SearchIcon, XIcon } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import type { Message } from "@/lib/messageUtils";
+import { WholeWord } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
+  Command,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Toggle } from "@/components/ui/toggle";
+
+interface Message {
+  id: string;
+  content?: string;
+  sender_name: string;
+  formattedDate: string;
+}
 
 interface SearchBarProps {
   messages: Message[];
   onMessageSelect: (messageId: string) => void;
-  onFilterChange: (filtered: Message[]) => void;
 }
 
-export function SearchBar({
-  messages,
-  onMessageSelect,
-  onFilterChange,
-}: SearchBarProps) {
+// Optimized search strategies for large datasets
+function createSearchMatcher(term: string, matchWholeWord: boolean) {
+  const trimmed = term.trim();
+  if (!trimmed) return () => false;
+
+  if (!matchWholeWord) {
+    // Simple case-insensitive substring search - fast for large datasets
+    const searchTerm = trimmed.toLowerCase();
+    return (text: string) => (text ?? "").toLowerCase().includes(searchTerm);
+  }
+
+  // Whole word matching with word boundary regex (case-insensitive)
+  const escapedTerm = trimmed.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(`\\b${escapedTerm}\\b`, "i");
+  return (text: string) => regex.test(text ?? "");
+}
+
+export function SearchBar({ messages, onMessageSelect }: SearchBarProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [showResults, setShowResults] = useState(false);
+  const [matchWholeWord, setMatchWholeWord] = useState(false);
 
-  // Filter messages based on search and date range
-  const filteredMessages = useMemo(() => {
-    let filtered = messages;
-
-    // Apply search filter
-    if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (msg) =>
-          msg.content?.toLowerCase().includes(term) ||
-          msg.sender_name.toLowerCase().includes(term),
-      );
-    }
-
-    // Apply date range filter
-    if (startDate) {
-      const start = new Date(startDate).getTime();
-      filtered = filtered.filter((msg) => msg.timestamp_ms >= start);
-    }
-
-    if (endDate) {
-      const end = new Date(endDate).getTime() + 86400000 - 1; // End of day
-      filtered = filtered.filter((msg) => msg.timestamp_ms <= end);
-    }
-
-    return filtered;
-  }, [messages, searchTerm, startDate, endDate]);
-
-  // Update parent when filtered messages change
-  useEffect(() => {
-    onFilterChange(filteredMessages);
-  }, [filteredMessages, onFilterChange]);
-
-  // Show top 50 search results
   const searchResults = useMemo(() => {
-    if (!searchTerm.trim()) return [];
-    return filteredMessages.slice(0, 50);
-  }, [searchTerm, filteredMessages]);
+    const trimmed = searchTerm.trim();
+    if (!trimmed) return [];
 
-  const handleClearSearch = () => {
-    setSearchTerm("");
-    setShowResults(false);
-  };
+    const matcher = createSearchMatcher(trimmed, matchWholeWord);
+    const results: Message[] = [];
 
-  const handleClearDates = () => {
-    setStartDate("");
-    setEndDate("");
-  };
+    // Early exit after 50 results for UI performance
+    for (let i = 0; i < messages.length && results.length < 50; i++) {
+      const msg = messages[i];
+
+      // Check content first (more likely to match)
+      if (msg.content && matcher(msg.content)) {
+        results.push(msg);
+        continue;
+      }
+
+      // Then check sender name
+      if (matcher(msg.sender_name)) {
+        results.push(msg);
+      }
+    }
+
+    return results;
+  }, [messages, searchTerm, matchWholeWord]);
 
   const handleResultClick = (messageId: string) => {
     onMessageSelect(messageId);
-    setShowResults(false);
+    setSearchTerm("");
   };
 
   return (
-    <div className="space-y-3">
-      {/* Search Input */}
-      <div className="relative">
-        <SearchIcon className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          type="text"
+    <Command className="rounded-lg border" shouldFilter={false}>
+      <div className="flex items-center justify-between">
+        <CommandInput
           placeholder="Search messages or sender names..."
           value={searchTerm}
-          onChange={(e) => {
-            setSearchTerm(e.target.value);
-            setShowResults(e.target.value.trim().length > 0);
-          }}
-          onFocus={() => setShowResults(searchTerm.trim().length > 0)}
-          className="pr-9 pl-9"
+          onValueChange={setSearchTerm}
+          className="flex-1 border-0 p-0"
         />
-        {searchTerm && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-0 right-0 h-full"
-            onClick={handleClearSearch}
-          >
-            <XIcon className="h-4 w-4" />
-          </Button>
-        )}
 
-        {/* Search Results Dropdown */}
-        {showResults && searchResults.length > 0 && (
-          <Card className="absolute top-full right-0 left-0 z-50 mt-1 max-h-96 overflow-y-auto">
-            <div className="p-2">
-              <p className="mb-2 px-2 text-muted-foreground text-xs">
-                Showing {searchResults.length} of {filteredMessages.length}{" "}
-                results
-              </p>
-              {searchResults.map((msg) => (
-                <button
-                  key={msg.id}
-                  type="button"
-                  onClick={() => handleResultClick(msg.id)}
-                  className="w-full rounded p-2 text-left transition-colors hover:bg-muted"
-                >
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="font-medium text-sm">
-                      {msg.sender_name}
-                    </span>
-                    <span className="text-muted-foreground text-xs">
-                      {msg.formattedDate}
-                    </span>
-                  </div>
-                  {msg.content && (
-                    <p className="mt-1 truncate text-muted-foreground text-xs">
-                      {msg.content}
-                    </p>
-                  )}
-                </button>
-              ))}
-            </div>
-          </Card>
-        )}
+        <Toggle
+          pressed={matchWholeWord}
+          onPressedChange={setMatchWholeWord}
+          aria-label="Match whole word"
+          size="sm"
+          className="mr-0.5 h-8 w-8 p-0"
+        >
+          <WholeWord className="h-4 w-4" />
+        </Toggle>
       </div>
 
-      {/* Date Range Filters */}
-      <div className="flex gap-2">
-        <div className="flex-1">
-          <label
-            htmlFor="start-date"
-            className="mb-1 block text-muted-foreground text-xs"
+      {searchResults.length > 0 && (
+        <CommandList className="max-h-[400px] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-2">
+          <CommandGroup
+            heading={`${searchResults.length}${searchResults.length === 50 ? "+" : ""} results`}
           >
-            Start Date
-          </label>
-          <Input
-            id="start-date"
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
-        </div>
-        <div className="flex-1">
-          <label
-            htmlFor="end-date"
-            className="mb-1 block text-muted-foreground text-xs"
-          >
-            End Date
-          </label>
-          <Input
-            id="end-date"
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            min={startDate}
-          />
-        </div>
-        {(startDate || endDate) && (
-          <div className="flex items-end">
-            <Button variant="outline" size="icon" onClick={handleClearDates}>
-              <XIcon className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-      </div>
-
-      {/* Filter Summary */}
-      {(searchTerm || startDate || endDate) && (
-        <div className="flex items-center justify-between rounded-lg bg-muted px-3 py-2">
-          <p className="text-sm">
-            Showing{" "}
-            <span className="font-medium">{filteredMessages.length}</span> of{" "}
-            <span className="font-medium">{messages.length}</span> messages
-          </p>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              handleClearSearch();
-              handleClearDates();
-            }}
-          >
-            Clear All
-          </Button>
-        </div>
+            {searchResults.map((msg) => (
+              <CommandItem
+                key={msg.id}
+                value={msg.id}
+                onSelect={() => handleResultClick(msg.id)}
+                className="flex flex-col items-start gap-1"
+              >
+                <div className="flex w-full items-baseline justify-between gap-2">
+                  <span className="font-medium text-sm">{msg.sender_name}</span>
+                  <span className="text-muted-foreground text-xs">
+                    {msg.formattedDate}
+                  </span>
+                </div>
+                {msg.content && (
+                  <p className="w-full truncate text-muted-foreground text-xs">
+                    {msg.content}
+                  </p>
+                )}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </CommandList>
       )}
-    </div>
+    </Command>
   );
 }

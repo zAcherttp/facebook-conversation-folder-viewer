@@ -1,10 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
+import { DateFilters } from "@/components/date-filters";
 import { FolderUpload } from "@/components/folder-upload";
 import { SearchBar } from "@/components/search-bar";
+import ThemeToggle from "@/components/theme-toggle";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
 import {
   Select,
   SelectContent,
@@ -44,18 +51,18 @@ function HomeComponent() {
     setIsProcessing(true);
     setChatFolder(folder);
     setMessages([]);
-    setFilteredMessages([]);
     setFolderStructure(null);
     setProgress({ current: 0, total: 0 });
 
+    const toastId = toast.loading("Building folder structure...");
+
     try {
       // Build folder structure for media preview
-      toast.info("Building folder structure...");
       const structure = buildFolderStructure(files);
       setFolderStructure(structure);
 
       // Process message files
-      toast.info("Processing message files...");
+      toast.loading("Processing message files...", { id: toastId });
       const processedMessages = await processMessageFiles(
         files,
         (current, total) => {
@@ -75,10 +82,12 @@ function HomeComponent() {
 
       toast.success(
         `Successfully loaded ${processedMessages.length} messages from ${folder}`,
+        { id: toastId },
       );
     } catch (error) {
       toast.error(
         `Failed to process messages: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { id: toastId },
       );
       console.error(error);
     } finally {
@@ -90,10 +99,10 @@ function HomeComponent() {
     setIsProcessing(true);
     setChatFolder("Demo Chat - Movie Night Squad");
     setMessages([]);
-    setFilteredMessages([]);
+
+    const toastId = toast.loading("Loading demo chat...");
 
     try {
-      toast.info("Loading demo chat...");
       const demoMessages = await loadDemoChat();
 
       setMessages(demoMessages);
@@ -108,10 +117,12 @@ function HomeComponent() {
 
       toast.success(
         `Successfully loaded ${demoMessages.length} demo messages with ${participantsList.length} participants`,
+        { id: toastId },
       );
     } catch (error) {
       toast.error(
         `Failed to load demo: ${error instanceof Error ? error.message : "Unknown error"}`,
+        { id: toastId },
       );
       console.error(error);
     } finally {
@@ -130,100 +141,128 @@ function HomeComponent() {
   }, []);
 
   return (
-    <div className="container mx-auto max-w-5xl px-4 py-6">
-      {!chatFolder && (
-        <div className="mb-6">
-          <h1 className="mb-2 font-bold text-3xl">
-            Facebook Messenger Archive Viewer
-          </h1>
-          <p className="text-muted-foreground">
-            View and search your Facebook Messenger chat history with support
-            for large archives
-          </p>
+    <ResizablePanelGroup direction="horizontal" className="max-h-svh">
+      {/* Left Panel - Folder Operations */}
+      <ResizablePanel defaultSize={20} minSize={15} maxSize={25}>
+        <div className="h-full overflow-y-auto p-4">
+          <FolderUpload
+            onFolderSelected={handleFolderSelected}
+            onDemoLoad={handleDemoLoad}
+            isProcessing={isProcessing}
+          />
+
+          {/* Processing Progress */}
+          {isProcessing && progress.total > 0 && (
+            <Card className="mt-4 p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm">
+                  Processing: {progress.current} / {progress.total}
+                </p>
+                <span className="text-muted-foreground text-sm">
+                  {Math.round((progress.current / progress.total) * 100)}%
+                </span>
+              </div>
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
+                <Progress
+                  className="h-full"
+                  value={(progress.current / progress.total) * 100}
+                />
+              </div>
+            </Card>
+          )}
         </div>
-      )}
-      {/* Upload Section */}
-      {!chatFolder && (
-        <FolderUpload
-          onFolderSelected={handleFolderSelected}
-          onDemoLoad={handleDemoLoad}
-          isProcessing={isProcessing}
-        />
-      )}{" "}
-      {/* Processing Progress */}
-      {isProcessing && progress.total > 0 && (
-        <Card className="mb-4 p-4">
-          <div className="flex items-center justify-between">
-            <p className="text-sm">
-              Processing message files: {progress.current} / {progress.total}
-            </p>
-            <span className="text-muted-foreground text-sm">
-              {Math.round((progress.current / progress.total) * 100)}%
-            </span>
-          </div>
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
-            <Progress
-              className="h-full"
-              value={(progress.current / progress.total) * 100}
-            />
-          </div>
-        </Card>
-      )}
-      {/* Viewer Section */}
-      {chatFolder && messages.length > 0 && (
-        <div className="space-y-4">
-          {/* Header */}
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="font-semibold text-xl">{chatFolder}</h2>
-                <p className="text-muted-foreground text-sm">
-                  {messages.length} messages loaded
+      </ResizablePanel>
+
+      <ResizableHandle />
+
+      {/* Middle Panel - Chat View */}
+      <ResizablePanel defaultSize={60} minSize={40}>
+        <div className="flex h-full flex-col">
+          {chatFolder && messages.length > 0 ? (
+            <>
+              {/* Chat Header */}
+              <div className="flex items-center justify-between border-b px-6 py-4">
+                <div>
+                  <h2 className="font-semibold text-xl">{chatFolder}</h2>
+                  <p className="text-muted-foreground text-sm">
+                    {filteredMessages.length} of {messages.length} messages
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label
+                    htmlFor="user-select"
+                    className="text-muted-foreground text-sm"
+                  >
+                    View as:
+                  </label>
+                  <Select
+                    value={mainUser || undefined}
+                    onValueChange={setMainUser}
+                  >
+                    <SelectTrigger id="user-select" className="w-48">
+                      <SelectValue placeholder="Select user" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {participants.map((participant) => (
+                        <SelectItem key={participant} value={participant}>
+                          {participant}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Message List */}
+              <div className="flex-1 overflow-hidden">
+                <VirtualMessageList
+                  messages={filteredMessages}
+                  selectedMessageId={selectedMessageId}
+                  mainUser={mainUser}
+                  folderStructure={folderStructure}
+                  containerHeight={0}
+                />
+              </div>
+            </>
+          ) : (
+            <div className="flex h-full items-center justify-center">
+              <div className="text-center">
+                <p className="text-muted-foreground">
+                  Select a folder to load messages
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                <label
-                  htmlFor="user-select"
-                  className="text-muted-foreground text-sm"
-                >
-                  View as:
-                </label>
-                <Select
-                  value={mainUser || undefined}
-                  onValueChange={setMainUser}
-                >
-                  <SelectTrigger id="user-select" className="w-48">
-                    <SelectValue placeholder="Select user" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {participants.map((participant) => (
-                      <SelectItem key={participant} value={participant}>
-                        {participant}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
-          </Card>
-
-          {/* Search and Filters */}
-          <SearchBar
-            messages={messages}
-            onMessageSelect={handleMessageSelect}
-            onFilterChange={handleFilterChange}
-          />
-
-          {/* Virtual Message List */}
-          <VirtualMessageList
-            messages={filteredMessages}
-            selectedMessageId={selectedMessageId}
-            mainUser={mainUser}
-            folderStructure={folderStructure}
-            containerHeight={600}
-          />
+          )}
         </div>
-      )}
-    </div>
+      </ResizablePanel>
+
+      <ResizableHandle />
+
+      {/* Right Panel - Search & Filters */}
+      <ResizablePanel defaultSize={20} minSize={15} maxSize={25}>
+        <div className="h-full overflow-y-auto p-4">
+          <div className="flex justify-end">
+            <ThemeToggle />
+          </div>
+          <div className="space-y-6">
+            <div>
+              <h3 className="mb-3 font-semibold text-sm">Search Messages</h3>
+              <SearchBar
+                messages={messages}
+                onMessageSelect={handleMessageSelect}
+              />
+            </div>
+
+            <div>
+              <h3 className="mb-3 font-semibold text-sm">Filter by Date</h3>
+              <DateFilters
+                messages={messages}
+                onFilterChange={handleFilterChange}
+              />
+            </div>
+          </div>
+        </div>
+      </ResizablePanel>
+    </ResizablePanelGroup>
   );
 }

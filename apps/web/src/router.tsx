@@ -1,6 +1,6 @@
-import { createRouter as createTanStackRouter } from "@tanstack/react-router";
-import Loader from "./components/loader";
 import "./index.css";
+import { createRouter as createTanStackRouter } from "@tanstack/react-router";
+import { Spinner } from "./components/ui/spinner";
 import { routeTree } from "./routeTree.gen";
 
 export const getRouter = () => {
@@ -9,7 +9,7 @@ export const getRouter = () => {
     scrollRestoration: true,
     defaultPreloadStaleTime: 0,
     context: {},
-    defaultPendingComponent: () => <Loader />,
+    defaultPendingComponent: () => <Spinner />,
     defaultNotFoundComponent: () => <div>Not Found</div>,
     Wrap: ({ children }) => <>{children}</>,
   });

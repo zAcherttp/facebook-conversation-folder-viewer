@@ -103,6 +103,18 @@ export function MessageBubble({
     };
   }, [blobUrls]);
 
+  const messageAttachmentProps = {
+    variant: "outline",
+    size: "sm",
+    className:
+      "rounded-sm h-auto flex-col items-start gap-1 py-1.5 text-secondary-foreground",
+  } as const;
+
+  const messageBadgeProps = {
+    className: "border border-primary/25 rounded-sm",
+    variant: "secondary",
+  } as const;
+
   return (
     <div
       className={cn(
@@ -113,28 +125,32 @@ export function MessageBubble({
     >
       {/* Only show sender name for single or first message in group */}
       {(groupPosition === "single" || groupPosition === "first") && (
-        <span className="px-3 font-light text-muted-foreground text-xs">
+        <span className="px-3 font-normal text-muted-foreground text-xs">
           {message.sender_name}
         </span>
       )}
       <div
         className={cn(
-          "flex flex-col gap-2 border p-3",
+          "flex max-w-3/4 flex-col gap-2 p-3",
           getMessageBubbleRadius(groupPosition, isMainUser),
           isSelected && "ring-2 ring-blue-500",
-          isMainUser ? "ml-auto bg-blue-600/80 text-white" : "bg-card",
+          isMainUser
+            ? "ml-auto bg-primary/90 text-primary-foreground"
+            : "bg-primary/10",
         )}
       >
         {/* Message Content */}
         {message.content && (
-          <p className="wrap-break-words whitespace-pre-wrap text-sm">
+          <p className="wrap-break-word whitespace-pre-wrap text-sm">
             {message.content}
           </p>
         )}
         {/* Unsent Message Indicator */}
         {message.is_unsent && (
-          <p className="text-muted-foreground text-xs italic">
-            This message was unsent
+          <p className="text-muted-foreground text-sm italic">
+            {isMainUser
+              ? "You unsent a message"
+              : `${message.sender_name} unsent a message`}
           </p>
         )}
         {/* Shared Link */}
@@ -144,7 +160,7 @@ export function MessageBubble({
               href={message.share.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-primary text-xs hover:underline"
+              className="wrap-anywhere text-secondary-foreground text-xs hover:underline"
             >
               {message.share.link}
             </a>
@@ -157,14 +173,14 @@ export function MessageBubble({
         )}
         {/* Call Duration */}
         {message.call_duration !== undefined && (
-          <Badge className="bg-primary/10 text-primary/90 text-xs">
+          <Badge {...messageBadgeProps}>
             📞 Call duration: {Math.floor(message.call_duration / 60)}:
             {String(message.call_duration % 60).padStart(2, "0")}
           </Badge>
         )}
         {/* Attachments */}
         {isMessageWithAttachments(message) && (
-          <div className="flex max-w-[800px] flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
             {/* Photos */}
             {message.photos?.map((photo, idx) => {
               const isLoaded = loadedImages.has(photo.uri);
@@ -236,9 +252,7 @@ export function MessageBubble({
             {message.videos?.map((video, idx) => (
               <Button
                 key={`video-${video.creation_timestamp}`}
-                variant="outline"
-                size="sm"
-                className="h-auto flex-col items-start gap-1 py-1.5"
+                {...messageAttachmentProps}
                 onClick={() => copyUriToClipboard(video.uri)}
               >
                 <div className="flex items-center gap-1">
@@ -257,9 +271,7 @@ export function MessageBubble({
             {message.audio_files?.map((audio, idx) => (
               <Button
                 key={`audio-${audio.creation_timestamp}`}
-                variant="outline"
-                size="sm"
-                className="h-auto flex-col items-start gap-1 py-1.5"
+                {...messageAttachmentProps}
                 onClick={() => copyUriToClipboard(audio.uri)}
               >
                 <div className="flex items-center gap-1">
@@ -278,9 +290,7 @@ export function MessageBubble({
             {message.files?.map((file, idx) => (
               <Button
                 key={`file-${file.creation_timestamp}`}
-                variant="outline"
-                size="sm"
-                className="h-auto flex-col items-start gap-1 py-1.5"
+                {...messageAttachmentProps}
                 onClick={() => copyUriToClipboard(file.uri)}
               >
                 <div className="flex items-center gap-1">
@@ -299,9 +309,7 @@ export function MessageBubble({
             {message.gifs?.map((gif, idx) => (
               <Button
                 key={`gif-${gif.uri}`}
-                variant="outline"
-                size="sm"
-                className="h-auto flex-col items-start gap-1 py-1.5"
+                {...messageAttachmentProps}
                 onClick={() => copyUriToClipboard(gif.uri)}
               >
                 <div className="flex items-center gap-1">
@@ -320,14 +328,40 @@ export function MessageBubble({
         {/* Reactions */}
         {message.reactions && message.reactions.length > 0 && (
           <div className="flex flex-wrap gap-1">
-            {message.reactions.map((reaction) => (
-              <Tooltip key={reaction.actor}>
-                <TooltipTrigger className="rounded bg-primary/10 px-1.5 py-0.5 text-xs">
-                  {reaction.reaction}
-                </TooltipTrigger>
-                <TooltipContent>{reaction.actor}</TooltipContent>
-              </Tooltip>
-            ))}
+            {(() => {
+              // Group reactions by emoji
+              const reactionGroups = message.reactions.reduce(
+                (acc, reaction) => {
+                  if (!acc[reaction.reaction]) {
+                    acc[reaction.reaction] = [];
+                  }
+                  acc[reaction.reaction].push(reaction.actor);
+                  return acc;
+                },
+                {} as Record<string, string[]>,
+              );
+
+              return Object.entries(reactionGroups).map(([emoji, actors]) => {
+                const NUM_ACTORS_SHOWN = 3;
+                const count = actors.length;
+                const displayActors =
+                  actors.length > NUM_ACTORS_SHOWN
+                    ? `${actors.slice(0, NUM_ACTORS_SHOWN).join(", ")}, and ${actors.length - NUM_ACTORS_SHOWN}+ more`
+                    : actors.join(", ");
+
+                return (
+                  <Tooltip key={emoji}>
+                    <TooltipTrigger asChild>
+                      <Badge {...messageBadgeProps}>
+                        {count > 1 && `${count} `}
+                        {emoji}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>{displayActors}</TooltipContent>
+                  </Tooltip>
+                );
+              });
+            })()}
           </div>
         )}
       </div>

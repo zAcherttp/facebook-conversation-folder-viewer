@@ -5,6 +5,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import appCss from "../index.css?url";
 
@@ -37,16 +38,18 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
 
 function RootDocument() {
   return (
-    <html lang="en" className="dark">
+    <html suppressHydrationWarning lang="en">
       <head>
         <HeadContent />
       </head>
       <body>
-        <div className="grid h-svh grid-rows-[auto_1fr]">
-          <Outlet />
-        </div>
-        <Toaster richColors />
-        <TanStackRouterDevtools position="bottom-left" />
+        <ThemeProvider>
+          <main>
+            <Outlet />
+          </main>
+          <TanStackRouterDevtools position="bottom-left" />
+          <Toaster richColors />
+        </ThemeProvider>
         <Scripts />
       </body>
     </html>

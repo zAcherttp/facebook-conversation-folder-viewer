@@ -19,7 +19,6 @@ First, install the dependencies:
 bun install
 ```
 
-
 Then, run the development server:
 
 ```bash
@@ -28,15 +27,9 @@ bun run dev
 
 Open [http://localhost:3001](http://localhost:3001) in your browser to see the web application.
 
-
-
-
-
-
-
 ## Project Structure
 
-```
+```txt
 message-viewer/
 ├── apps/
 │   ├── web/         # Frontend application (React + TanStack Start)

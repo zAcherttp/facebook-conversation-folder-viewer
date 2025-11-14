@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { MessageCircleDashed } from "lucide-react";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { DateFilters } from "@/components/date-filters";
@@ -6,6 +7,13 @@ import { FolderUpload } from "@/components/folder-upload";
 import { SearchBar } from "@/components/search-bar";
 import ThemeToggle from "@/components/theme-toggle";
 import { Card } from "@/components/ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { Progress } from "@/components/ui/progress";
 import {
   ResizableHandle,
@@ -28,14 +36,6 @@ import {
   type Message,
   processMessageFiles,
 } from "@/lib/messageUtils";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
-import { MessageCircleDashed } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: HomeComponent,

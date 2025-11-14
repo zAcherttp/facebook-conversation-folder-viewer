@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { FolderUpload } from "@/components/folder-upload";
 import { SearchBar } from "@/components/search-bar";
 import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -13,7 +14,9 @@ import {
 } from "@/components/ui/select";
 import { VirtualMessageList } from "@/components/virtual-message-list";
 import {
+  buildFolderStructure,
   extractParticipants,
+  type FolderStructure,
   loadDemoChat,
   type Message,
   processMessageFiles,
@@ -34,18 +37,22 @@ function HomeComponent() {
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [mainUser, setMainUser] = useState<string | null>(null);
   const [participants, setParticipants] = useState<string[]>([]);
+  const [folderStructure, setFolderStructure] =
+    useState<FolderStructure | null>(null);
 
   const handleFolderSelected = async (files: File[], folder: string) => {
     setIsProcessing(true);
     setChatFolder(folder);
     setMessages([]);
     setFilteredMessages([]);
+    setFolderStructure(null);
     setProgress({ current: 0, total: 0 });
 
     try {
-      // Build folder structure for future media preview
-      // const structure = buildFolderStructure(files);
-      // setFolderStructure(structure);
+      // Build folder structure for media preview
+      toast.info("Building folder structure...");
+      const structure = buildFolderStructure(files);
+      setFolderStructure(structure);
 
       // Process message files
       toast.info("Processing message files...");
@@ -124,15 +131,17 @@ function HomeComponent() {
 
   return (
     <div className="container mx-auto max-w-5xl px-4 py-6">
-      <div className="mb-6">
-        <h1 className="mb-2 font-bold text-3xl">
-          Facebook Messenger Archive Viewer
-        </h1>
-        <p className="text-muted-foreground">
-          View and search your Facebook Messenger chat history with support for
-          large archives
-        </p>
-      </div>
+      {!chatFolder && (
+        <div className="mb-6">
+          <h1 className="mb-2 font-bold text-3xl">
+            Facebook Messenger Archive Viewer
+          </h1>
+          <p className="text-muted-foreground">
+            View and search your Facebook Messenger chat history with support
+            for large archives
+          </p>
+        </div>
+      )}
       {/* Upload Section */}
       {!chatFolder && (
         <FolderUpload
@@ -152,11 +161,10 @@ function HomeComponent() {
               {Math.round((progress.current / progress.total) * 100)}%
             </span>
           </div>
-          {/* biome-ignore lint/nursery/useStrictCSSInJSAttributes: Dynamic progress percentage */}
           <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full bg-primary transition-all"
-              style={{ width: `${(progress.current / progress.total) * 100}%` }}
+            <Progress
+              className="h-full"
+              value={(progress.current / progress.total) * 100}
             />
           </div>
         </Card>
@@ -211,6 +219,7 @@ function HomeComponent() {
             messages={filteredMessages}
             selectedMessageId={selectedMessageId}
             mainUser={mainUser}
+            folderStructure={folderStructure}
             containerHeight={600}
           />
         </div>

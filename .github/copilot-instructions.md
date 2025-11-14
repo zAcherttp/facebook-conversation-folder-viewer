@@ -148,7 +148,9 @@ const folderStructure = {
   photos: { "img.jpg": File },
   videos: { "clip.mp4": File }
 };
-// Later: Preview inline with URL.createObjectURL(folderStructure.photos["img.jpg"])
+//On Render: When a MessageBubble becomes visible, it looks up the attachment's uri in the Map, gets the File object, and creates a blob: URL using URL.createObjectURL(file).
+
+//On Unmount: When the message scrolls out of view (and the virtual list unmounts it), you must call URL.revokeObjectURL() to prevent memory leaks.
 ```
 
 ---

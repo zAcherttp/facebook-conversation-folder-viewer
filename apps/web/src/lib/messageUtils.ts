@@ -2,29 +2,60 @@
  * Utility functions for processing Facebook Messenger archive data
  */
 
-import type { MessageBubbleGroupPosition } from "@/components/message-bubble";
+export type Attachment = {
+  uri: string;
+  creation_timestamp?: number;
+};
+
+export type MessageReaction = {
+  reaction: string;
+  actor: string;
+};
+
+export type MessageSharable = {
+  link?: string;
+  share_text?: string;
+};
+
+export type MessageParticipant = {
+  name: string;
+};
 
 export interface Message {
   id: string;
   sender_name: string;
   timestamp_ms: number;
   content?: string;
-  photos?: Array<{ uri: string; creation_timestamp?: number }>;
-  videos?: Array<{ uri: string; creation_timestamp?: number }>;
-  audio_files?: Array<{ uri: string; creation_timestamp?: number }>;
-  files?: Array<{ uri: string; creation_timestamp?: number }>;
-  gifs?: Array<{ uri: string }>;
-  reactions?: Array<{ reaction: string; actor: string }>;
-  share?: { link?: string; share_text?: string };
+  photos?: Attachment[];
+  videos?: Attachment[];
+  audio_files?: Attachment[];
+  files?: Attachment[];
+  gifs?: Attachment[];
+  reactions?: MessageReaction[];
+  share?: MessageSharable;
   call_duration?: number;
   is_unsent?: boolean;
   formattedDate?: string;
   formattedTime?: string;
 }
+export function isMessageWithAttachments(message: Message): boolean {
+  const ATTACHMENT_KEYS: (keyof Message)[] = [
+    "photos",
+    "videos",
+    "audio_files",
+    "files",
+    "gifs",
+  ];
+
+  return ATTACHMENT_KEYS.some((key) => {
+    const value = message[key];
+    return Array.isArray(value) && value.length > 0;
+  });
+}
 
 export interface FacebookMessageFile {
-  messages: Array<Omit<Message, "id" | "formattedDate" | "formattedTime">>;
-  participants?: Array<{ name: string }>;
+  messages: Omit<Message, "id" | "formattedDate" | "formattedTime">[];
+  participants?: MessageParticipant[];
   title?: string;
   thread_path?: string;
 }
@@ -36,6 +67,8 @@ export interface FolderStructure {
   photos: Record<string, File>;
   videos: Record<string, File>;
 }
+
+export type MessageBubbleGroupPosition = "single" | "first" | "middle" | "last";
 
 /**
  * Read large JSON files in chunks to prevent browser freezing
@@ -62,9 +95,21 @@ export async function readJsonInChunks<T>(
  */
 export function fixEncoding(str: string): string {
   try {
-    return decodeURIComponent(escape(str));
+    // 1. Create a byte array from the string's character codes.
+    // This effectively treats the "broken" string as latin1.
+    const bytes = new Uint8Array(str.length);
+    for (let i = 0; i < str.length; i++) {
+      bytes[i] = str.charCodeAt(i);
+    }
+
+    // 2. Decode that byte array as UTF-8.
+    // We use { fatal: true } to ensure it throws an error
+    // on invalid UTF-8, which mimics your original try/catch.
+    const decoder = new TextDecoder("utf-8", { fatal: true });
+    return decoder.decode(bytes);
   } catch {
-    return str; // Return original if already UTF-8 or error occurs
+    // 3. If decoding fails, it wasn't the expected broken encoding.
+    return str; // Return original
   }
 }
 
@@ -161,8 +206,8 @@ export async function processMessageFiles(
   const sortedFiles = files
     .filter((f) => /message_\d+\.json$/.test(f.name))
     .sort((a, b) => {
-      const numA = Number.parseInt(a.name.match(/\d+/)?.[0] || "0");
-      const numB = Number.parseInt(b.name.match(/\d+/)?.[0] || "0");
+      const numA = Number.parseInt(a.name.match(/\d+/)?.[0] || "0", 10);
+      const numB = Number.parseInt(b.name.match(/\d+/)?.[0] || "0", 10);
       return numA - numB;
     });
 
@@ -191,6 +236,19 @@ export async function processMessageFiles(
           id: `${file.name}_${index}`,
           sender_name: fixEncoding(msg.sender_name),
           content: msg.content ? fixEncoding(msg.content) : undefined,
+          reactions: msg.reactions?.map((reaction) => ({
+            ...reaction,
+            reaction: fixEncoding(reaction.reaction),
+            actor: fixEncoding(reaction.actor),
+          })),
+          share: msg.share
+            ? {
+                link: msg.share.link ? fixEncoding(msg.share.link) : undefined,
+                share_text: msg.share.share_text
+                  ? fixEncoding(msg.share.share_text)
+                  : undefined,
+              }
+            : undefined,
           formattedDate: date.toLocaleDateString(),
           formattedTime: date.toLocaleTimeString([], {
             hour: "2-digit",
@@ -301,4 +359,48 @@ export function getMessageGroupPosition(
 
   // middle in group
   return "middle";
+}
+
+export async function copyToClipboard(text: string): Promise<boolean> {
+  if (
+    !navigator.clipboard ||
+    !navigator.clipboard.writeText ||
+    text.length === 0
+  ) {
+    return false;
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function getMessageBubbleRadius(
+  groupPosition: MessageBubbleGroupPosition,
+  flip: boolean,
+): string {
+  if (groupPosition === "single") return "rounded-xl";
+  if (groupPosition === "first") {
+    return flip
+      ? "rounded-tl-xl rounded-tr-xl rounded-bl-xl rounded-br-sm"
+      : "rounded-tl-xl rounded-tr-xl rounded-bl-sm rounded-br-xl";
+  }
+  if (groupPosition === "last") {
+    return flip
+      ? "rounded-tl-xl rounded-tr-sm rounded-bl-xl rounded-br-xl"
+      : "rounded-tl-sm rounded-tr-xl rounded-bl-xl rounded-br-xl";
+  }
+  // middle
+  return flip
+    ? "rounded-tl-xl rounded-tr-sm rounded-bl-xl rounded-br-sm"
+    : "rounded-tl-sm rounded-tr-xl rounded-bl-sm rounded-br-xl";
+}
+
+export function getMessageBubbleSpacing(
+  groupPosition: MessageBubbleGroupPosition,
+): string {
+  if (groupPosition === "single" || groupPosition === "last") return "mb-2";
+  return "mb-0";
 }

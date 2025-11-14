@@ -1,3 +1,4 @@
+import { Image } from "@unpic/react";
 import {
   CheckIcon,
   CopyIcon,
@@ -6,20 +7,28 @@ import {
   MusicIcon,
   VideoIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { motion } from "motion/react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import type { Message } from "@/lib/messageUtils";
-import { cleanAttachmentPath } from "@/lib/messageUtils";
+import type { FolderStructure, Message } from "@/lib/messageUtils";
+import {
+  cleanAttachmentPath,
+  copyToClipboard,
+  getMessageBubbleRadius,
+  getMessageBubbleSpacing,
+  isMessageWithAttachments,
+  type MessageBubbleGroupPosition,
+} from "@/lib/messageUtils";
 import { cn } from "@/lib/utils";
+import { Badge } from "./ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
-
-export type MessageBubbleGroupPosition = "single" | "first" | "middle" | "last";
 
 interface MessageBubbleProps {
   message: Message;
   groupPosition?: MessageBubbleGroupPosition;
   isSelected?: boolean;
   isMainUser?: boolean;
+  folderStructure?: FolderStructure | null;
 }
 
 export function MessageBubble({
@@ -27,57 +36,78 @@ export function MessageBubble({
   groupPosition = "single",
   isSelected,
   isMainUser = false,
+  folderStructure,
 }: MessageBubbleProps) {
   const [copiedPath, setCopiedPath] = useState<string | null>(null);
+  const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
 
-  const copyToClipboard = async (uri: string) => {
+  const copyUriToClipboard = async (uri: string) => {
     const cleanPath = cleanAttachmentPath(uri);
-    try {
-      await navigator.clipboard.writeText(cleanPath);
-      setCopiedPath(uri);
-      setTimeout(() => setCopiedPath(null), 2000);
-    } catch (error) {
-      console.error("Failed to copy:", error);
-    }
+    copyToClipboard(cleanPath);
+    setCopiedPath(uri);
+    setTimeout(() => setCopiedPath(null), 2000);
   };
 
-  const hasAttachments =
-    (message.photos && message.photos.length > 0) ||
-    (message.videos && message.videos.length > 0) ||
-    (message.audio_files && message.audio_files.length > 0) ||
-    (message.files && message.files.length > 0) ||
-    (message.gifs && message.gifs.length > 0);
-
-  // Apply different border radius based on group position
-  const getBubbleRadius = () => {
-    if (groupPosition === "single") return "rounded-xl";
-    if (groupPosition === "first") {
-      return isMainUser
-        ? "rounded-tl-xl rounded-tr-xl rounded-bl-xl rounded-br-sm"
-        : "rounded-tl-xl rounded-tr-xl rounded-bl-sm rounded-br-xl";
-    }
-    if (groupPosition === "last") {
-      return isMainUser
-        ? "rounded-tl-xl rounded-tr-sm rounded-bl-xl rounded-br-xl"
-        : "rounded-tl-sm rounded-tr-xl rounded-bl-xl rounded-br-xl";
-    }
-    // middle
-    return isMainUser
-      ? "rounded-tl-xl rounded-tr-sm rounded-bl-xl rounded-br-sm"
-      : "rounded-tl-sm rounded-tr-xl rounded-bl-sm rounded-br-xl";
+  const loadImage = (uri: string) => {
+    setLoadedImages((prev) => new Set(prev).add(uri));
   };
 
-  // Adjust spacing based on group position
-  const getSpacing = () => {
-    if (groupPosition === "single" || groupPosition === "last") return "mb-2";
-    return "mb-0";
-  };
+  // Create blob URLs only for loaded images
+  const blobUrls = useMemo(() => {
+    const urls: Record<string, string> = {};
+
+    if (!folderStructure) return urls;
+
+    // Process photos - only create blob URLs for loaded images
+    message.photos?.forEach((photo) => {
+      if (!loadedImages.has(photo.uri)) return;
+      const fileName = photo.uri.split("/").pop();
+      if (fileName && folderStructure.photos[fileName]) {
+        urls[photo.uri] = URL.createObjectURL(folderStructure.photos[fileName]);
+      }
+    });
+
+    // Process videos - only create blob URLs for loaded videos
+    message.videos?.forEach((video) => {
+      if (!loadedImages.has(video.uri)) return;
+      const fileName = video.uri.split("/").pop();
+      if (fileName && folderStructure.videos[fileName]) {
+        urls[video.uri] = URL.createObjectURL(folderStructure.videos[fileName]);
+      }
+    });
+
+    // Process GIFs - only create blob URLs for loaded GIFs
+    message.gifs?.forEach((gif) => {
+      if (!loadedImages.has(gif.uri)) return;
+      const fileName = gif.uri.split("/").pop();
+      if (fileName && folderStructure.gifs[fileName]) {
+        urls[gif.uri] = URL.createObjectURL(folderStructure.gifs[fileName]);
+      }
+    });
+
+    return urls;
+  }, [
+    folderStructure,
+    loadedImages,
+    message.photos,
+    message.videos,
+    message.gifs,
+  ]);
+
+  // Cleanup blob URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      Object.values(blobUrls).forEach((url) => {
+        URL.revokeObjectURL(url);
+      });
+    };
+  }, [blobUrls]);
 
   return (
     <div
       className={cn(
         "flex flex-col",
-        getSpacing(),
+        getMessageBubbleSpacing(groupPosition),
         isMainUser ? "items-end" : "items-start",
       )}
     >
@@ -89,8 +119,8 @@ export function MessageBubble({
       )}
       <div
         className={cn(
-          "border p-3 transition-all",
-          getBubbleRadius(),
+          "flex flex-col gap-2 border p-3",
+          getMessageBubbleRadius(groupPosition, isMainUser),
           isSelected && "ring-2 ring-blue-500",
           isMainUser ? "ml-auto bg-blue-600/80 text-white" : "bg-card",
         )}
@@ -104,12 +134,12 @@ export function MessageBubble({
         {/* Unsent Message Indicator */}
         {message.is_unsent && (
           <p className="text-muted-foreground text-xs italic">
-            Message was unsent
+            This message was unsent
           </p>
         )}
         {/* Shared Link */}
         {message.share?.link && (
-          <div className="mt-2 rounded border bg-muted/50 p-2">
+          <div className="rounded border bg-muted/50 px-2 pb-1">
             <a
               href={message.share.link}
               target="_blank"
@@ -127,34 +157,80 @@ export function MessageBubble({
         )}
         {/* Call Duration */}
         {message.call_duration !== undefined && (
-          <p className="mt-2 text-muted-foreground text-xs">
+          <Badge className="bg-primary/10 text-primary/90 text-xs">
             📞 Call duration: {Math.floor(message.call_duration / 60)}:
             {String(message.call_duration % 60).padStart(2, "0")}
-          </p>
+          </Badge>
         )}
         {/* Attachments */}
-        {hasAttachments && (
-          <div className="mt-2 flex flex-wrap gap-2">
+        {isMessageWithAttachments(message) && (
+          <div className="flex max-w-[800px] flex-wrap gap-2">
             {/* Photos */}
-            {message.photos?.map((photo, idx) => (
-              <Button
-                key={`photo-${photo.creation_timestamp}`}
-                variant="outline"
-                size="sm"
-                className="h-auto flex-col items-start gap-1 py-1.5"
-                onClick={() => copyToClipboard(photo.uri)}
-              >
-                <div className="flex items-center gap-1">
-                  <ImageIcon className="h-3 w-3" />
-                  <span className="text-xs">Photo {idx + 1}</span>
-                  {copiedPath === photo.uri ? (
-                    <CheckIcon className="h-3 w-3 text-green-500" />
-                  ) : (
-                    <CopyIcon className="h-3 w-3" />
-                  )}
-                </div>
-              </Button>
-            ))}
+            {message.photos?.map((photo, idx) => {
+              const isLoaded = loadedImages.has(photo.uri);
+              const blobUrl = isLoaded ? blobUrls[photo.uri] : null;
+              const canLoadImage = !!folderStructure;
+
+              return (
+                <Button
+                  key={`photo-${photo.creation_timestamp}`}
+                  variant="outline"
+                  size="sm"
+                  className="h-auto w-auto flex-col items-start gap-1 p-1"
+                  onClick={() => {
+                    if (!isLoaded && canLoadImage) {
+                      loadImage(photo.uri);
+                    } else if (isLoaded || !canLoadImage) {
+                      copyUriToClipboard(photo.uri);
+                    }
+                  }}
+                >
+                  <motion.div
+                    layout
+                    animate={{
+                      opacity: isLoaded ? 1 : 0.5,
+                      scale: isLoaded ? 1 : 0.95,
+                    }}
+                    transition={{
+                      opacity: { duration: 0.3 },
+                      scale: { duration: 0.3 },
+                      layout: { duration: 0.3 },
+                    }}
+                    className="flex h-[400px] w-[400px] items-center justify-center"
+                  >
+                    {blobUrl ? (
+                      <Image
+                        src={blobUrl}
+                        alt={`Attachment ${idx + 1}`}
+                        layout="constrained"
+                        width={400}
+                        height={400}
+                        className="h-auto max-h-[400px] w-auto max-w-[400px] rounded object-contain"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center rounded bg-muted/10">
+                        {!canLoadImage && (
+                          <span className="text-muted-foreground text-xs">
+                            No preview
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </motion.div>
+                  <div className="flex w-full items-center justify-center gap-2">
+                    <span className="text-xs">
+                      {canLoadImage && !isLoaded ? "Click to Load" : ""}
+                    </span>
+                    {isLoaded &&
+                      (copiedPath === photo.uri ? (
+                        <CheckIcon className="h-3 w-3 text-green-500" />
+                      ) : (
+                        <CopyIcon className="h-3 w-3" />
+                      ))}
+                  </div>
+                </Button>
+              );
+            })}
 
             {/* Videos */}
             {message.videos?.map((video, idx) => (
@@ -163,7 +239,7 @@ export function MessageBubble({
                 variant="outline"
                 size="sm"
                 className="h-auto flex-col items-start gap-1 py-1.5"
-                onClick={() => copyToClipboard(video.uri)}
+                onClick={() => copyUriToClipboard(video.uri)}
               >
                 <div className="flex items-center gap-1">
                   <VideoIcon className="h-3 w-3" />
@@ -184,7 +260,7 @@ export function MessageBubble({
                 variant="outline"
                 size="sm"
                 className="h-auto flex-col items-start gap-1 py-1.5"
-                onClick={() => copyToClipboard(audio.uri)}
+                onClick={() => copyUriToClipboard(audio.uri)}
               >
                 <div className="flex items-center gap-1">
                   <MusicIcon className="h-3 w-3" />
@@ -205,7 +281,7 @@ export function MessageBubble({
                 variant="outline"
                 size="sm"
                 className="h-auto flex-col items-start gap-1 py-1.5"
-                onClick={() => copyToClipboard(file.uri)}
+                onClick={() => copyUriToClipboard(file.uri)}
               >
                 <div className="flex items-center gap-1">
                   <FileIcon className="h-3 w-3" />
@@ -226,7 +302,7 @@ export function MessageBubble({
                 variant="outline"
                 size="sm"
                 className="h-auto flex-col items-start gap-1 py-1.5"
-                onClick={() => copyToClipboard(gif.uri)}
+                onClick={() => copyUriToClipboard(gif.uri)}
               >
                 <div className="flex items-center gap-1">
                   <ImageIcon className="h-3 w-3" />
@@ -243,10 +319,10 @@ export function MessageBubble({
         )}
         {/* Reactions */}
         {message.reactions && message.reactions.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1">
             {message.reactions.map((reaction) => (
               <Tooltip key={reaction.actor}>
-                <TooltipTrigger className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                <TooltipTrigger className="rounded bg-primary/10 px-1.5 py-0.5 text-xs">
                   {reaction.reaction}
                 </TooltipTrigger>
                 <TooltipContent>{reaction.actor}</TooltipContent>

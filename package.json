@@ -14,7 +14,9 @@
     "dev:native": "turbo -F native dev",
     "dev:web": "turbo -F web dev"
   },
-  "dependencies": {},
+  "dependencies": {
+    "motion": "^12.23.24"
+  },
   "devDependencies": {
     "turbo": "^2.5.4",
     "@biomejs/biome": "^2.2.0"

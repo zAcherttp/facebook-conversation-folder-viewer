@@ -1,6 +1,6 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useEffect, useRef } from "react";
-import type { Message } from "@/lib/messageUtils";
+import type { FolderStructure, Message } from "@/lib/messageUtils";
 import { getMessageGroupPosition } from "@/lib/messageUtils";
 import { MessageBubble } from "./message-bubble";
 
@@ -8,6 +8,7 @@ interface VirtualMessageListProps {
   messages: Message[];
   selectedMessageId?: string | null;
   mainUser?: string | null;
+  folderStructure?: FolderStructure | null;
   containerHeight?: number;
   itemHeight?: number;
   bufferSize?: number;
@@ -17,8 +18,9 @@ export function VirtualMessageList({
   messages,
   selectedMessageId,
   mainUser,
+  folderStructure,
   containerHeight = 600,
-  itemHeight = 120,
+  itemHeight = 100,
   bufferSize = 5,
 }: VirtualMessageListProps) {
   const scrollParentRef = useRef<HTMLDivElement>(null);
@@ -47,7 +49,7 @@ export function VirtualMessageList({
   return (
     <div
       ref={scrollParentRef}
-      className="relative overflow-y-auto rounded-lg border"
+      className="relative overflow-y-auto border px-4"
       style={{ height: containerHeight }}
     >
       <div className="relative w-full" style={{ height: totalSize }}>
@@ -76,6 +78,7 @@ export function VirtualMessageList({
                 groupPosition={groupPosition}
                 isSelected={message.id === selectedMessageId}
                 isMainUser={mainUser === message.sender_name}
+                folderStructure={folderStructure}
               />
             </div>
           );

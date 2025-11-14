@@ -1,0 +1,200 @@
+{
+  "participants": [
+    {
+      "name": "Alice Johnson"
+    },
+    {
+      "name": "Bob Smith"
+    },
+    {
+      "name": "Charlie Davis"
+    },
+    {
+      "name": "Diana Martinez"
+    }
+  ],
+  "messages": [
+    {
+      "sender_name": "Alice Johnson",
+      "timestamp_ms": 1699800000000,
+      "content": "Hey everyone! Who's up for a movie night this weekend? 🎬",
+      "type": "Generic"
+    },
+    {
+      "sender_name": "Bob Smith",
+      "timestamp_ms": 1699800120000,
+      "content": "Count me in! I've been wanting to watch the new sci-fi thriller.",
+      "type": "Generic"
+    },
+    {
+      "sender_name": "Charlie Davis",
+      "timestamp_ms": 1699800240000,
+      "content": "Sounds great! Should we meet at my place?",
+      "photos": [
+        {
+          "uri": "demo-chat/photos/living_room.jpg",
+          "creation_timestamp": 1699800240
+        }
+      ],
+      "type": "Generic"
+    },
+    {
+      "sender_name": "Diana Martinez",
+      "timestamp_ms": 1699800360000,
+      "content": "Perfect! I'll bring snacks 🍿",
+      "type": "Generic"
+    },
+    {
+      "sender_name": "Alice Johnson",
+      "timestamp_ms": 1699800480000,
+      "content": "I found the movie trailer! Check this out:",
+      "videos": [
+        {
+          "uri": "demo-chat/videos/trailer.mp4",
+          "creation_timestamp": 1699800480
+        }
+      ],
+      "type": "Generic"
+    },
+    {
+      "sender_name": "Bob Smith",
+      "timestamp_ms": 1699800600000,
+      "content": "That looks amazing! 😍",
+      "reactions": [
+        {
+          "reaction": "👍",
+          "actor": "Alice Johnson"
+        },
+        {
+          "reaction": "❤️",
+          "actor": "Charlie Davis"
+        }
+      ],
+      "type": "Generic"
+    },
+    {
+      "sender_name": "Charlie Davis",
+      "timestamp_ms": 1699800720000,
+      "content": "I'll send you guys the playlist for background music",
+      "audio_files": [
+        {
+          "uri": "demo-chat/audio/chill_playlist.mp3",
+          "creation_timestamp": 1699800720
+        }
+      ],
+      "type": "Generic"
+    },
+    {
+      "sender_name": "Diana Martinez",
+      "timestamp_ms": 1699800840000,
+      "content": "Here's the shopping list I made:",
+      "files": [
+        {
+          "uri": "demo-chat/files/shopping_list.pdf",
+          "creation_timestamp": 1699800840
+        }
+      ],
+      "type": "Generic"
+    },
+    {
+      "sender_name": "Alice Johnson",
+      "timestamp_ms": 1699800960000,
+      "content": "This meme is so us right now 😂",
+      "gifs": [
+        {
+          "uri": "demo-chat/gifs/excited_popcorn.gif"
+        }
+      ],
+      "type": "Generic"
+    },
+    {
+      "sender_name": "Bob Smith",
+      "timestamp_ms": 1699801080000,
+      "content": "Should we do a video call to coordinate?",
+      "call_duration": 1847,
+      "type": "Call"
+    },
+    {
+      "sender_name": "Charlie Davis",
+      "timestamp_ms": 1699801200000,
+      "share": {
+        "link": "https://www.moviedb.com/upcoming-releases",
+        "share_text": "MovieDB - Your source for the latest film releases and reviews"
+      },
+      "type": "Share"
+    },
+    {
+      "sender_name": "Diana Martinez",
+      "timestamp_ms": 1699801320000,
+      "content": "Actually, I just realized I have all these photos from our last movie night! Good memories 📸",
+      "photos": [
+        {
+          "uri": "demo-chat/photos/group_photo_1.jpg",
+          "creation_timestamp": 1699801320
+        },
+        {
+          "uri": "demo-chat/photos/group_photo_2.jpg",
+          "creation_timestamp": 1699801320
+        },
+        {
+          "uri": "demo-chat/photos/group_photo_3.jpg",
+          "creation_timestamp": 1699801320
+        }
+      ],
+      "reactions": [
+        {
+          "reaction": "😊",
+          "actor": "Alice Johnson"
+        },
+        {
+          "reaction": "😊",
+          "actor": "Bob Smith"
+        },
+        {
+          "reaction": "😊",
+          "actor": "Charlie Davis"
+        }
+      ],
+      "type": "Generic"
+    },
+    {
+      "sender_name": "Alice Johnson",
+      "timestamp_ms": 1699801440000,
+      "content": "Okay so Saturday at 7 PM?",
+      "type": "Generic"
+    },
+    {
+      "sender_name": "Bob Smith",
+      "timestamp_ms": 1699801560000,
+      "content": "Works for me! 👌",
+      "type": "Generic"
+    },
+    {
+      "sender_name": "Charlie Davis",
+      "timestamp_ms": 1699801680000,
+      "content": "See you all then!",
+      "type": "Generic"
+    },
+    {
+      "sender_name": "Diana Martinez",
+      "timestamp_ms": 1699801800000,
+      "content": "Can't wait! 🎉",
+      "type": "Generic"
+    },
+    {
+      "sender_name": "Alice Johnson",
+      "timestamp_ms": 1699801920000,
+      "content": "Wait, I need to cancel. Something came up 😔",
+      "is_unsent": true,
+      "type": "Generic"
+    },
+    {
+      "sender_name": "Alice Johnson",
+      "timestamp_ms": 1699802040000,
+      "content": "Never mind, I sorted it out! Saturday is still on! 🎊",
+      "type": "Generic"
+    }
+  ],
+  "title": "Movie Night Squad",
+  "thread_path": "demo-chat"
+}

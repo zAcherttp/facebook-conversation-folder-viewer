@@ -48,7 +48,7 @@ export function VirtualMessageList({
   return (
     <div
       ref={scrollParentRef}
-      className="relative h-full overflow-y-scroll border px-4 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-2"
+      className="relative h-full overflow-y-scroll border px-4 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500/50 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-2"
     >
       <div className="relative w-full" style={{ height: totalSize }}>
         {virtualItems.map((item) => {

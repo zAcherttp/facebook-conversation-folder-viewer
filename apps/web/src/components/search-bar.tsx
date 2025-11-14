@@ -8,13 +8,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Toggle } from "@/components/ui/toggle";
-
-interface Message {
-  id: string;
-  content?: string;
-  sender_name: string;
-  formattedDate: string;
-}
+import type { Message } from "@/lib/messageUtils";
 
 interface SearchBarProps {
   messages: Message[];
@@ -95,7 +89,7 @@ export function SearchBar({ messages, onMessageSelect }: SearchBarProps) {
       </div>
 
       {searchResults.length > 0 && (
-        <CommandList className="max-h-[400px] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-2">
+        <CommandList className="max-h-[400px] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-500/50 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-2">
           <CommandGroup
             heading={`${searchResults.length}${searchResults.length === 50 ? "+" : ""} results`}
           >

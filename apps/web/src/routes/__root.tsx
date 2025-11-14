@@ -5,7 +5,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider, useTheme } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import appCss from "../index.css?url";
 
@@ -36,6 +36,11 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
   component: RootDocument,
 });
 
+function ThemedToaster() {
+  const { appTheme } = useTheme();
+  return <Toaster richColors theme={appTheme} />;
+}
+
 function RootDocument() {
   return (
     <html suppressHydrationWarning lang="en">
@@ -48,7 +53,7 @@ function RootDocument() {
             <Outlet />
           </main>
           <TanStackRouterDevtools position="bottom-left" />
-          <Toaster richColors />
+          <ThemedToaster />
         </ThemeProvider>
         <Scripts />
       </body>

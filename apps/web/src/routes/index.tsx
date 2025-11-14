@@ -28,6 +28,14 @@ import {
   type Message,
   processMessageFiles,
 } from "@/lib/messageUtils";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { MessageCircleDashed } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: HomeComponent,
@@ -141,7 +149,7 @@ function HomeComponent() {
   }, []);
 
   return (
-    <ResizablePanelGroup direction="horizontal" className="max-h-svh">
+    <ResizablePanelGroup direction="horizontal" className="max-h-svh min-h-svh">
       {/* Left Panel - Folder Operations */}
       <ResizablePanel defaultSize={20} minSize={15} maxSize={25}>
         <div className="h-full overflow-y-auto p-4">
@@ -226,11 +234,18 @@ function HomeComponent() {
             </>
           ) : (
             <div className="flex h-full items-center justify-center">
-              <div className="text-center">
-                <p className="text-muted-foreground">
-                  Select a folder to load messages
-                </p>
-              </div>
+              <Empty>
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <MessageCircleDashed />
+                  </EmptyMedia>
+                  <EmptyTitle>No Conversation Loaded</EmptyTitle>
+                  <EmptyDescription>
+                    Select a Facebook Messenger export folder or load the demo
+                    chat to get started viewing your messages.
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
             </div>
           )}
         </div>
